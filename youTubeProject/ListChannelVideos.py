@@ -44,7 +44,7 @@ def getChannelVideos(channelId, apiClient):
         #if there is a nextPageToken then retrieve results for next page.
         request = apiClient.search().list(channelId=channelId, type="video", part="snippet", maxResults=maxResults, pageToken=pageToken)
         response = request.execute()
-        i = 0
+        
         for item in response["items"]:
             #
             videoId = "https://www.youtube.com/watch?v=" + item["id"]["videoId"]
@@ -54,13 +54,7 @@ def getChannelVideos(channelId, apiClient):
             thumbnails = item["snippet"]["thumbnails"]["high"]["url"]
             channelTitle = item["snippet"]["channelTitle"]
             allVideos.append({"videoId": videoId, "publishedDate": publishedDate, "videoTitle": videoTitle, "videoDescription": videoDescription, "thumbnails":thumbnails, "channelTitle":channelTitle})    
-        print(allVideos[i])
-        i = i + 1
-        print("Is there a next page", "nextPageToken" in list(response))
-        print("Number of items found on this page is: ",len(response["items"]))
-        input("Press Enter to proceed")
-
-    
+                    
     return allVideos
 
 

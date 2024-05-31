@@ -19,29 +19,70 @@ def getChannelId(channelHandle, apiClient):
     return response["items"][0]['id']
 
 def getChnnelPlaylists(channelId, apiClient):
+    playlistIds = []
     maxResults = 50
-    request = apiClient.playlists().list(channelId=channelId, part="id", maxResults=maxResults)
+    request = apiClient.playlists().list(channelId=channelId, part="id,snippet", maxResults=maxResults)
     response = request.execute()
     totalPlaylists = response["pageInfo"]["totalResults"]
     print("total playlists found are ", totalPlaylists)
-    playListsIds = [item["id"] for item in response["items"]]
-    return playListsIds
 
-def getPlaylistVideos(playlistId, apiClient):
+    #retrieve playlistIds on first page.
+    for item in response["items"]:
+        playlistIds.append({"playlistId": item["id"], "playlistTitle": item["snippet"]["title"], "playlistDescription": item["snippet"]["description"]})
+    
+    while("nextPageToken" in list(response)):
+        pageToken = response["nextPageToken"]
+        request = apiClient.playlists().list(channelId=channelId, part="id", maxResults=maxResults, pageToken=pageToken)
+        response = request.execute()
+        for item in response["items"]:
+            playlistIds.append({"playlistId": item["id"], "playlistTitle": item["snippet"]["title"], "playlistDescription": item["snippet"]["description"]})
+
+    return playlistIds
+
+def getPlaylistVideos(playlistId, playlistTitle, playlistDescription, apiClient):
+    #create an empty list to store dictionary of viedoes data
     playlistVideos = []
+    #set max results per page to 50. Value can't be set to more than 50
     maxResults = 50
+    #send first request
     request = apiClient.playlistItems().list(playlistId=playlistId, part="id,snippet,contentDetails,status", maxResults=maxResults)
     response = request.execute()
     totalVideos = response["pageInfo"]["totalResults"]
+    print("total Videos found for playlist ", playlistTitle, " is ", totalVideos)
+    
+    #get videos for first page. 
     for item in response["items"]:
         videoId = item["id"]
-        publishedDate = item["contentDetails"]["videoPublishedAt"]
+        #publishedDate = item["contentDetails"]["videoPublishedAt"]
         videoTitle = item["snippet"]["title"]
         videoDescription = item["snippet"]["description"]
-        videoThumbnail = item["snippet"]["thumbnails"]["maxres"]["url"]
+        #videoThumbnail = item["snippet"]["thumbnails"]["maxres"]["url"]
         channelTitle = item["snippet"]["channelTitle"]
         videoPrivacy = item["status"]["privacyStatus"]
-        playlistVideos.append({"videoTitle":videoTitle, "videoId":videoId, "videoDescription":videoDescription, "publishedDate":publishedDate, "videoThumbnail":videoThumbnail, "videoPrivacy":videoPrivacy, "channelTitle":channelTitle})
+        
+        #playlistVideos.append({"playilstTitle": playlistTitle, "playlistDescription":playlistDescription, "videoTitle":videoTitle, "videoId":videoId, "videoDescription":videoDescription, "publishedDate":publishedDate, "videoThumbnail":videoThumbnail, "videoPrivacy":videoPrivacy, "channelTitle":channelTitle})
+        playlistVideos.append({"playilstTitle": playlistTitle, "playlistDescription":playlistDescription, "videoTitle":videoTitle, "videoId":videoId, "videoDescription":videoDescription, "videoPrivacy":videoPrivacy, "channelTitle":channelTitle})
+    #loop if there are more pages. it will start from pag-2
+    while("nextPageToken" in list(response)):
+        #
+        pageToken = response["nextPageToken"]
+        #if there is a nextPageToken then retrieve results for next page.
+        request = apiClient.playlistItems().list(playlistId=playlistId, part="id,snippet,contentDetails,status", maxResults=maxResults, pageToken=pageToken)
+        response = request.execute()
+        totalVideos = response["pageInfo"]["totalResults"]
+        print("total Videos found for playlist ", playlistTitle, " is ", totalVideos)
+        
+        #get all videos data per page and append result to list.
+        for item in response["items"]:
+            videoId = item["id"]
+            #publishedDate = item["contentDetails"]["videoPublishedAt"]
+            videoTitle = item["snippet"]["title"]
+            videoDescription = item["snippet"]["description"]
+            #videoThumbnail = item["snippet"]["thumbnails"]["default"]["url"]
+            channelTitle = item["snippet"]["channelTitle"]
+            videoPrivacy = item["status"]["privacyStatus"]
+            playlistVideos.append({"playilstTitle": playlistTitle, "playlistDescription":playlistDescription, "videoTitle":videoTitle, "videoId":videoId, "videoDescription":videoDescription, "videoPrivacy":videoPrivacy, "channelTitle":channelTitle})
+    
 
     return playlistVideos
 
@@ -98,10 +139,14 @@ def main():
     channleId = getChannelId(channelHandle, youtube)
     playlistIds = getChnnelPlaylists(channleId, youtube)
     
-    playListVideos = getPlaylistVideos(playlistIds[0], youtube)
+    playListVideos = []
+
+    for playlist in playlistIds:
+        playListVideos = playListVideos + getPlaylistVideos(playlist["playlistId"], playlist["playlistTitle"], playlist["playlistDescription"],  youtube)
+
     plVideosDF = pd.DataFrame(playListVideos)
     print(plVideosDF)
-
+    plVideosDF.to_excel(fileName, index=False)
     #channelVideos = getChannelVideos(channleId, youtube)
     
     #print(json.dumps(channelVideos, sort_keys=True, indent=3))

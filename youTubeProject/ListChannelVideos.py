@@ -18,6 +18,36 @@ def getChannelId(channelHandle, apiClient):
     
     return response["items"][0]['id']
 
+def getChnnelPlaylists(channelId, apiClient):
+    maxResults = 50
+    request = apiClient.playlists().list(channelId=channelId, part="id", maxResults=maxResults)
+    response = request.execute()
+    totalPlaylists = response["pageInfo"]["totalResults"]
+    print("total playlists found are ", totalPlaylists)
+    playListsIds = [item["id"] for item in response["items"]]
+    return playListsIds
+
+def getPlaylistVideos(playlistId, apiClient):
+    playlistVideos = []
+    maxResults = 50
+    request = apiClient.playlistItems().list(playlistId=playlistId, part="id,snippet,contentDetails,status", maxResults=maxResults)
+    response = request.execute()
+    totalVideos = response["pageInfo"]["totalResults"]
+    for item in response["items"]:
+        videoId = item["id"]
+        publishedDate = item["contentDetails"]["videoPublishedAt"]
+        videoTitle = item["snippet"]["title"]
+        videoDescription = item["snippet"]["description"]
+        videoThumbnail = item["snippet"]["thumbnails"]["maxres"]["url"]
+        channelTitle = item["snippet"]["channelTitle"]
+        videoPrivacy = item["status"]["privacyStatus"]
+        playlistVideos.append({"videoTitle":videoTitle, "videoId":videoId, "videoDescription":videoDescription, "publishedDate":publishedDate, "videoThumbnail":videoThumbnail, "videoPrivacy":videoPrivacy, "channelTitle":channelTitle})
+
+    return playlistVideos
+
+
+
+
 def getChannelVideos(channelId, apiClient):
     allVideos = []
     maxResults = "50"
@@ -66,14 +96,19 @@ def main():
     fileName = "C:\\GitProjects\\archive\\" + channelHandle + "_videos.xlsx"
     
     channleId = getChannelId(channelHandle, youtube)
+    playlistIds = getChnnelPlaylists(channleId, youtube)
     
-    channelVideos = getChannelVideos(channleId, youtube)
+    playListVideos = getPlaylistVideos(playlistIds[0], youtube)
+    plVideosDF = pd.DataFrame(playListVideos)
+    print(plVideosDF)
+
+    #channelVideos = getChannelVideos(channleId, youtube)
     
     #print(json.dumps(channelVideos, sort_keys=True, indent=3))
 
-    df = pd.DataFrame(channelVideos)
-    print(df)
-    df.to_excel(fileName, index=False)
+    # df = pd.DataFrame(channelVideos)
+    # print(df)
+    # df.to_excel(fileName, index=False)
 
 
 if __name__ == "__main__":

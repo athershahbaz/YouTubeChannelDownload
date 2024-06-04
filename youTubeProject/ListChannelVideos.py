@@ -52,7 +52,7 @@ def getPlaylistVideos(playlistId, playlistTitle, playlistDescription, apiClient)
     
     #get videos for first page. 
     for item in response["items"]:
-        videoId = item["id"]
+        videoId = "https://www.youtube.com/watch?v=" + item["contentDetails"]["videoId"]
         #publishedDate = item["contentDetails"]["videoPublishedAt"]
         videoTitle = item["snippet"]["title"]
         videoDescription = item["snippet"]["description"]
@@ -74,7 +74,7 @@ def getPlaylistVideos(playlistId, playlistTitle, playlistDescription, apiClient)
         
         #get all videos data per page and append result to list.
         for item in response["items"]:
-            videoId = item["id"]
+            videoId = "https://www.youtube.com/watch?v=" + item["contentDetails"]["videoId"]
             #publishedDate = item["contentDetails"]["videoPublishedAt"]
             videoTitle = item["snippet"]["title"]
             videoDescription = item["snippet"]["description"]
@@ -133,7 +133,7 @@ def main():
     key = open("googleApi.key", "r").read().strip()
     youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=key)
     
-    channelHandle = input("Enter handle for chnnel")
+    channelHandle = input("Enter handle for chnnel: ")
     fileName = "C:\\GitProjects\\archive\\" + channelHandle + "_videos.xlsx"
     
     channleId = getChannelId(channelHandle, youtube)
